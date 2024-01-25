@@ -24,7 +24,7 @@ settings.OLD_XCODE_PATH = argv['xcode-old'] || false;
 var getPlatforms = function (projectName) {
   var deferred = Q.defer();
   var platforms = [];
-  var xcodeFolder = '/Images.xcassets/AppIcon.appiconset/';
+  var xcodeFolder = '/Assets.xcassets/AppIcon.appiconset/';
 
   if (settings.OLD_XCODE_PATH) {
     xcodeFolder = '/Resources/icons/';
