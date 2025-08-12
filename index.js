@@ -204,7 +204,10 @@ var getProjectName = function () {
       if (err) {
         deferred.reject(err);
       }
-      var projectName = result.widget.name[0];
+      var nameNode = result.widget.name[0];
+      var projectName = (typeof nameNode === 'object' && nameNode._)
+        ? nameNode._ // short attribute present which returns an object { _: 'app_name', $: 'short_name' }
+        : nameNode;
       deferred.resolve(projectName);
     });
   });
