@@ -1,11 +1,12 @@
-var fs     = require('fs-extra');
-var path   = require('path');
-var xml2js = require('xml2js');
-var ig     = require('imagemagick');
-var colors = require('colors');
-var _      = require('underscore');
-var Q      = require('q');
-var argv   = require('minimist')(process.argv.slice(2));
+var fs           = require('fs-extra');
+var path         = require('path');
+var xml2js       = require('xml2js');
+var ig           = require('imagemagick');
+var colors       = require('colors');
+var _            = require('underscore');
+var Q            = require('q');
+var argv         = require('minimist')(process.argv.slice(2));
+var EventEmitter = require('events');
 
 /**
  * @var {Object} settings - names of the config file and of the icon image
@@ -14,6 +15,24 @@ var settings = {};
 settings.CONFIG_FILE = argv.config || 'config.xml';
 settings.ICON_FILE = argv.icon || 'icon.png';
 settings.OLD_XCODE_PATH = argv['xcode-old'] || false;
+
+/**
+ * Resolves the real iOS project folder via the cordova-ios platform API
+ * (see https://apache.github.io/cordova-ios/documentation/cordova/upgrading-8/),
+ * since cordova-ios 8 no longer names the Xcode project after config.xml.
+ *
+ * @return {String|null} the xcodeCordovaProj path, or null if it can't be resolved
+ */
+var getIosCordovaProjPath = function () {
+  var platformPath = path.join(process.cwd(), 'platforms', 'ios');
+  try {
+    var CordovaIos = require(path.join(process.cwd(), 'node_modules', 'cordova-ios'));
+    var iosProject = new CordovaIos('ios', platformPath, new EventEmitter());
+    return iosProject.locations.xcodeCordovaProj;
+  } catch (e) {
+    return null;
+  }
+};
 
 /**
  * Check which platforms are added to the project and return their icon names and sizes
@@ -30,11 +49,16 @@ var getPlatforms = function (projectName) {
     xcodeFolder = '/Resources/icons/';
   }
 
+  var iosCordovaProjPath = getIosCordovaProjPath();
+  var iosIconsPath = iosCordovaProjPath
+    ? path.join(iosCordovaProjPath, xcodeFolder) + path.sep
+    : 'platforms/ios/' + projectName + xcodeFolder;
+
   platforms.push({
     name : 'ios',
     // TODO: use async fs.exists
     isAdded : fs.existsSync('platforms/ios'),
-    iconsPath : 'platforms/ios/' + projectName + xcodeFolder,
+    iconsPath : iosIconsPath,
     icons : [
       { name: 'icon-20.png',             size : 20   },
       { name: 'icon-20@2x.png',          size : 40   },
