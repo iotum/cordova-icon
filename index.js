@@ -1,11 +1,12 @@
-var fs     = require('fs-extra');
-var path   = require('path');
-var xml2js = require('xml2js');
-var ig     = require('imagemagick');
-var colors = require('colors');
-var _      = require('underscore');
-var Q      = require('q');
-var argv   = require('minimist')(process.argv.slice(2));
+var fs           = require('fs-extra');
+var path         = require('path');
+var xml2js       = require('xml2js');
+var ig           = require('imagemagick');
+var colors       = require('colors');
+var _            = require('underscore');
+var Q            = require('q');
+var argv         = require('minimist')(process.argv.slice(2));
+var EventEmitter = require('events');
 
 /**
  * @var {Object} settings - names of the config file and of the icon image
@@ -14,6 +15,24 @@ var settings = {};
 settings.CONFIG_FILE = argv.config || 'config.xml';
 settings.ICON_FILE = argv.icon || 'icon.png';
 settings.OLD_XCODE_PATH = argv['xcode-old'] || false;
+
+/**
+ * Resolves the real iOS project folder via the cordova-ios platform API
+ * (see https://apache.github.io/cordova-ios/documentation/cordova/upgrading-8/),
+ * since cordova-ios 8 no longer names the Xcode project after config.xml.
+ *
+ * @return {String|null} the xcodeCordovaProj path, or null if it can't be resolved
+ */
+var getIosCordovaProjPath = function () {
+  var platformPath = path.join(process.cwd(), 'platforms', 'ios');
+  try {
+    var CordovaIos = require(path.join(process.cwd(), 'node_modules', 'cordova-ios'));
+    var iosProject = new CordovaIos('ios', platformPath, new EventEmitter());
+    return iosProject.locations.xcodeCordovaProj;
+  } catch (e) {
+    return null;
+  }
+};
 
 /**
  * Check which platforms are added to the project and return their icon names and sizes
@@ -30,48 +49,37 @@ var getPlatforms = function (projectName) {
     xcodeFolder = '/Resources/icons/';
   }
 
+  var iosCordovaProjPath = getIosCordovaProjPath();
+  var iosIconsPath = iosCordovaProjPath
+    ? path.join(iosCordovaProjPath, xcodeFolder) + path.sep
+    : 'platforms/ios/' + projectName + xcodeFolder;
+
   platforms.push({
     name : 'ios',
     // TODO: use async fs.exists
     isAdded : fs.existsSync('platforms/ios'),
-    iconsPath : 'platforms/ios/' + projectName + xcodeFolder,
+    iconsPath : iosIconsPath,
     icons : [
-      { name: 'icon-20.png',             size : 20   },
-      { name: 'icon-20@2x.png',          size : 40   },
-      { name: 'icon-20@3x.png',          size : 60   },
-      { name: 'icon-24@2x.png',          size : 48   },
-      { name: 'icon-27.5@2x.png',        size : 55   },
-      { name: 'icon-29.png',             size : 29   },
+      { name: 'icon-38@2x.png',          size : 76   },
+      { name: 'icon-38@3x.png',          size : 114  },
+      { name: 'icon-29@1x.png',          size : 29   },
       { name: 'icon-29@2x.png',          size : 58   },
       { name: 'icon-29@3x.png',          size : 87   },
-      { name: 'icon-40.png',             size : 40   },
+      { name: 'icon-40@1x.png',          size : 40   },
       { name: 'icon-40@2x.png',          size : 80   },
-      { name: 'icon-44@2x.png',          size : 88   },
-      { name: 'icon-50.png',             size : 50   },
-      { name: 'icon-50@2x.png',          size : 100  },
-      { name: 'icon-60@2x.png',          size : 120  },
-      { name: 'icon-60@3x.png',          size : 180  },
-      { name: 'icon-72.png',             size : 72   },
-      { name: 'icon-72@2x.png',          size : 144  },
-      { name: 'icon-76.png',             size : 76   },
       { name: 'icon-76@2x.png',          size : 152  },
       { name: 'icon-83.5@2x.png',        size : 167  },
-      { name: 'icon-86@2x.png',          size : 172  },
-      { name: 'icon-98@2x.png',          size : 196  },
+      { name: 'icon-60@1x.png',          size : 60   },
+      { name: 'icon-60@2x.png',          size : 120  },
+      { name: 'icon-60@3x.png',          size : 180  },
+      { name: 'icon-16.png',             size : 16   },
+      { name: 'icon-32.png',             size : 32   },
+      { name: 'icon-64.png',             size : 64   },
+      { name: 'icon-128.png',            size : 128  },
+      { name: 'icon-256.png',            size : 256  },
+      { name: 'icon-512.png',            size : 512  },
       { name: 'icon-1024.png',           size : 1024 },
-      { name: 'icon-small.png',          size : 29   },
-      { name: 'icon-small@2x.png',       size : 58   },
-      { name: 'icon-small@3x.png',       size : 87   },
-      { name: 'icon.png',                size : 57   },
-      { name: 'icon@2x.png',             size : 114  },
-      { name: 'AppIcon24x24@2x.png',     size : 48   },
-      { name: 'AppIcon27.5x27.5@2x.png', size : 55   },
-      { name: 'AppIcon29x29@2x.png',     size : 58   },
-      { name: 'AppIcon29x29@3x.png',     size : 87   },
-      { name: 'AppIcon40x40@2x.png',     size : 80   },
-      { name: 'AppIcon44x44@2x.png',     size : 88   },
-      { name: 'AppIcon86x86@2x.png',     size : 172  },
-      { name: 'AppIcon98x98@2x.png',     size : 196  }
+      { name: 'icon.png',                size : 1024 }
     ]
   });
   platforms.push({
