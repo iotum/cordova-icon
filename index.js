@@ -78,7 +78,8 @@ var getPlatforms = function (projectName) {
       { name: 'icon-128.png',            size : 128  },
       { name: 'icon-256.png',            size : 256  },
       { name: 'icon-512.png',            size : 512  },
-      { name: 'icon-1024.png',           size : 1024 }
+      { name: 'icon-1024.png',           size : 1024 },
+      { name: 'icon.png',                size : 1024 }
     ]
   });
   platforms.push({
